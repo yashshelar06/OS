@@ -1,0 +1,159 @@
+Q1)
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+int main() {
+    pid_t pid;
+
+    // Create a child process
+    pid = fork();
+
+    if (pid == -1) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+
+    if (pid == 0) {
+        // Child process
+        printf("Child process (PID=%d) executing ls command...\n", getpid());
+
+        // Replace the child process image with the ls command
+        execl("/bin/ls", "ls", (char *)NULL);
+
+        // If exec fails
+        perror("execl");
+        exit(EXIT_FAILURE);
+    } else {
+        // Parent process
+        printf("Parent process (PID=%d) going to sleep...\n", getpid());
+
+        // Parent sleeps for a while
+        sleep(5);
+
+        printf("Parent process waking up.\n");
+        wait(NULL);
+
+        printf("Parent process completed.\n");
+    }
+return 0;
+}
+
+Q2)
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
+#define MAX_PROCESSES 10
+
+typedef struct {
+    int processID;
+    int arrivalTime;
+    int cpuBurst;
+    int ioWaitTime;
+    int turnaroundTime;
+    int waitingTime;
+} Process;
+
+void roundRobinScheduling(Process processes[], int numProcesses, int timeQuantum) {
+    int remainingBurst[MAX_PROCESSES];
+    int currentTime = 0;
+    int timeElapsed = 0;
+    int completedProcesses = 0;
+    int totalWaitingTime = 0, totalTurnaroundTime = 0;
+
+    // Initialize remaining burst time
+    for (int i = 0; i < numProcesses; i++) {
+        remainingBurst[i] = processes[i].cpuBurst;
+    }
+
+    printf("Gantt Chart:\n");
+
+    while (completedProcesses < numProcesses) {
+        bool isProcessExecuted = false;
+
+        for (int i = 0; i < numProcesses; i++) {
+            if (processes[i].arrivalTime <= currentTime && remainingBurst[i] > 0) {
+                int executeTime = (remainingBurst[i] > timeQuantum) ? timeQuantum : remainingBurst[i];
+
+                printf("| P%d (%d-%d) ", processes[i].processID, currentTime, currentTime + executeTime);
+
+                remainingBurst[i] -= executeTime;
+                currentTime += executeTime;
+                timeElapsed += executeTime;
+
+                if (remainingBurst[i] == 0) {
+                    completedProcesses++;
+
+                    // Calculate turnaround time and waiting time for the process
+                    processes[i].turnaroundTime = timeElapsed + processes[i].ioWaitTime - processes[i].arrivalTime;
+                    processes[i].waitingTime = processes[i].turnaroundTime - processes[i].cpuBurst;
+
+                    totalTurnaroundTime += processes[i].turnaroundTime;
+                    totalWaitingTime += processes[i].waitingTime;
+                }
+
+                isProcessExecuted = true;
+            }
+        }
+
+        if (!isProcessExecuted) {
+            currentTime++;
+        }
+    }
+
+    printf("|\n");
+
+    // Print turnaround time and waiting time for each process
+    printf("\nTurnaround Time and Waiting Time:\n");
+    printf("| Process | Turnaround Time | Waiting Time |\n");
+    for (int i = 0; i < numProcesses; i++) {
+        printf("|   P%-4d |        %-9d |      %-8d |\n", processes[i].processID, processes[i].turnaroundTime, processes[i].waitingTime);
+    }
+
+    // Calculate and print average turnaround time and waiting time
+    float averageTurnaroundTime = (float)totalTurnaroundTime / numProcesses;
+    float averageWaitingTime = (float)totalWaitingTime / numProcesses;
+
+    printf("\nAverage Turnaround Time: %.2f\n", averageTurnaroundTime);
+    printf("Average Waiting Time: %.2f\n", averageWaitingTime);
+}
+
+int main() {
+    int numProcesses, timeQuantum;
+
+    // Accept the number of processes and time quantum
+    printf("Enter the number of processes: ");
+    scanf("%d", &numProcesses);
+
+    if (numProcesses > MAX_PROCESSES) {
+        printf("Maximum number of processes allowed is %d\n", MAX_PROCESSES);
+        return 1;
+    }
+
+    printf("Enter the time quantum: ");
+    scanf("%d", &timeQuantum);
+
+    // Declare an array of processes
+    Process processes[MAX_PROCESSES];
+
+    // Accept arrival time, CPU burst, and generate IO wait time for each process
+    for (int i = 0; i < numProcesses; i++) {
+        processes[i].processID = i + 1;
+        printf("Process P%d:\n", processes[i].processID);
+        printf("Arrival Time: ");
+        scanf("%d", &processes[i].arrivalTime);
+        printf("CPU Burst: ");
+        scanf("%d", &processes[i].cpuBurst);
+        processes[i].ioWaitTime = 2; // Fixed I/O waiting time assumed
+        processes[i].turnaroundTime = 0;
+        processes[i].waitingTime = 0;
+    }
+
+    // Perform Round Robin Scheduling
+    roundRobinScheduling(processes, numProcesses, timeQuantum);
+
+    return 0;
+}

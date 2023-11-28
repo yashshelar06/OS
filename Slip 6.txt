@@ -1,0 +1,103 @@
+Q1)
+#include <stdio.h>
+#include <time.h>
+
+void performTask() {
+    // Replace this with the set of instructions you want to measure
+    for (int i = 0; i < 100000000; i++) {
+        // Some computation
+    }
+}
+
+int main() {
+    // Record the start time
+    clock_t start_time = clock();
+
+    // Call the function with the set of instructions to measure
+    performTask();
+
+    // Record the end time
+    clock_t end_time = clock();
+
+    // Calculate the execution time in seconds
+    double execution_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
+
+    // Print the execution time
+    printf("Execution Time: %f seconds\n", execution_time);
+
+    return 0;
+}
+
+Q2)
+#include <stdio.h>
+
+#define MAX_PAGES 20
+
+void fifoPageReplacement(int pages[], int n, int capacity) {
+    int frame[capacity];
+    int frameCount = 0;
+    int pageFaults = 0;
+    int frameIndex = 0;
+
+    printf("Page Reference String: ");
+    for (int i = 0; i < n; i++) {
+        printf("%d ", pages[i]);
+    }
+    printf("\n");
+
+    printf("Number of Memory Frames: %d\n", capacity);
+
+    for (int i = 0; i < n; i++) {
+        int currentPage = pages[i];
+        int pageFound = 0;
+
+        // Check if the page is already in the frame
+        for (int j = 0; j < frameCount; j++) {
+            if (frame[j] == currentPage) {
+                pageFound = 1;
+                break;
+            }
+        }
+
+        // If the page is not in the frame, perform page fault
+        if (!pageFound) {
+            if (frameCount < capacity) {
+                // If there is an empty frame, use it
+                frame[frameCount++] = currentPage;
+            } else {
+                // Replace the oldest page in the frame using FIFO
+                frame[frameIndex] = currentPage;
+                frameIndex = (frameIndex + 1) % capacity;
+            }
+            pageFaults++;
+        }
+
+        // Display the current page scheduling
+        printf("Page %d: [", currentPage);
+        for (int j = 0; j < frameCount; j++) {
+            printf("%d ", frame[j]);
+        }
+        printf("]");
+
+        if (!pageFound) {
+            printf(" <- Page Fault");
+        }
+
+        printf("\n");
+    }
+
+    printf("Total Page Faults: %d\n", pageFaults);
+}
+
+int main() {
+    int referenceString[] = {3, 4, 5, 6, 3, 4, 7, 3, 4, 5, 6, 7, 2, 4, 6};
+    int n = sizeof(referenceString) / sizeof(referenceString[0]);
+    int memoryFrames;
+
+    printf("Enter the number of memory frames: ");
+    scanf("%d", &memoryFrames);
+
+    fifoPageReplacement(referenceString, n, memoryFrames);
+
+    return 0;
+}

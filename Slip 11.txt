@@ -1,0 +1,99 @@
+Q1)
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+int main() {
+    pid_t pid;
+
+    // Create a child process
+    pid = fork();
+
+    if (pid == -1) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+
+    if (pid == 0) {
+        // Child process
+        printf("Child process ID: %d\n", getpid());
+        printf("Hello World!\n");
+    } else {
+        // Parent process
+        printf("Parent process ID: %d\n", getpid());
+        printf("Hi\n");
+    }
+
+    return 0;
+}
+
+Q2)
+#include <stdio.h>
+#include <stdbool.h>
+
+#define MAX_PAGES 20
+
+// Function to check if a page is present in the frame
+bool isPagePresent(int frame[], int n, int page) {
+    for (int i = 0; i < n; i++) {
+        if (frame[i] == page) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// FIFO Page Replacement Algorithm
+void fifoPageReplacement(int pageReference[], int n, int capacity) {
+    int frame[capacity];
+    int pageFaults = 0;
+    int rear = 0; // Index to keep track of the rear of the frame queue
+
+    printf("Page Reference String: ");
+    for (int i = 0; i < n; i++) {
+        printf("%d ", pageReference[i]);
+    }
+    printf("\n");
+
+    printf("Number of Memory Frames: %d\n", capacity);
+
+    for (int i = 0; i < capacity; i++) {
+        frame[i] = -1; // Initialize frames to -1 (indicating empty frame)
+    }
+
+    for (int i = 0; i < n; i++) {
+        int currentPage = pageReference[i];
+
+        // Check if the page is already in the frame
+        if (!isPagePresent(frame, capacity, currentPage)) {
+            // If not, replace the page at the front of the frame queue
+            frame[rear] = currentPage;
+            rear = (rear + 1) % capacity; // Move rear circularly
+
+            pageFaults++;
+
+            // Display the current page scheduling
+            printf("Page %d: [", currentPage);
+            for (int j = 0; j < capacity; j++) {
+                printf("%d ", frame[j]);
+            }
+            printf("] <- Page Fault\n");
+        }
+    }
+
+    printf("Total Page Faults: %d\n", pageFaults);
+}
+
+int main() {
+    int pageReference[] = {0, 2, 1, 6, 4, 0, 1, 0, 3, 1, 2, 1};
+    int n = sizeof(pageReference) / sizeof(pageReference[0]);
+    int memoryFrames;
+
+    printf("Enter the number of memory frames: ");
+    scanf("%d", &memoryFrames);
+
+    fifoPageReplacement(pageReference, n, memoryFrames);
+
+    return 0;
+}

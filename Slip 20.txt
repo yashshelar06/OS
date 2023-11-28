@@ -1,0 +1,135 @@
+Q1)
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main() {
+    pid_t pid;
+
+    pid = fork();
+
+    if (pid < 0) {
+        fprintf(stderr, "Fork failed\n");
+        return 1;
+    } else if (pid == 0) {
+        // Child process
+        printf("Child process ID: %d\n", getpid());
+
+        // Execute the "ls" command using execl
+        execl("/bin/ls", "ls", (char *)NULL);
+
+        // If execl fails
+        perror("execl");
+        exit(EXIT_FAILURE);
+    } else {
+        // Parent process
+        printf("Parent process ID: %d\n", getpid());
+
+        // Parent goes to sleep
+        sleep(5);
+
+        // Wait for the child to complete
+        wait(NULL);
+
+        printf("Parent process woke up\n");
+    }
+
+    return 0;
+}
+
+Q2)
+#include <stdio.h>
+#include <stdbool.h>
+
+#define MAX_PAGES 20
+
+// Function to check if a page is present in the frame
+bool isPagePresent(int frame[], int n, int page) {
+    for (int i = 0; i < n; i++) {
+        if (frame[i] == page) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Function to find the index of the least recently used page
+int findLRUIndex(int age[], int n) {
+    int minIndex = 0;
+
+    for (int i = 1; i < n; i++) {
+        if (age[i] < age[minIndex]) {
+            minIndex = i;
+        }
+    }
+
+    return minIndex;
+}
+
+// LRU Page Replacement Algorithm
+void lruPageReplacement(int pageReference[], int n, int capacity) {
+    int frame[capacity];
+    int age[capacity];
+    int pageFaults = 0;
+
+    printf("Page Reference String: ");
+    for (int i = 0; i < n; i++) {
+        printf("%d ", pageReference[i]);
+    }
+    printf("\n");
+
+    printf("Number of Memory Frames: %d\n", capacity);
+
+    for (int i = 0; i < capacity; i++) {
+        frame[i] = -1; // Initialize frames to -1 (indicating empty frame)
+        age[i] = 0;
+    }
+
+    for (int i = 0; i < n; i++) {
+        int currentPage = pageReference[i];
+
+        // Check if the page is already in the frame
+        if (!isPagePresent(frame, capacity, currentPage)) {
+            // If not, find the index of the least recently used page
+            int lruIndex = findLRUIndex(age, capacity);
+
+            // Replace the least recently used page
+            frame[lruIndex] = currentPage;
+            age[lruIndex] = 0; // Reset age of the new page
+            pageFaults++;
+
+            // Display the current page scheduling
+            printf("Page %d: [", currentPage);
+            for (int j = 0; j < capacity; j++) {
+                printf("%d ", frame[j]);
+                age[j]++;
+            }
+            printf("] <- Page Fault\n");
+        } else {
+            // Update age of pages already in the frame
+            for (int j = 0; j < capacity; j++) {
+                if (frame[j] == currentPage) {
+                    age[j] = 0;
+                } else {
+                    age[j]++;
+                }
+            }
+        }
+    }
+
+    printf("Total Page Faults: %d\n", pageFaults);
+}
+
+int main() {
+    int pageReference[] = {7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2};
+    int n = sizeof(pageReference) / sizeof(pageReference[0]);
+    int memoryFrames;
+
+    printf("Enter the number of memory frames: ");
+    scanf("%d", &memoryFrames);
+
+    lruPageReplacement(pageReference, n, memoryFrames);
+
+    return 0;
+}

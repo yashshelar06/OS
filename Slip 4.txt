@@ -1,0 +1,152 @@
+Q1)
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+int main() {
+    pid_t pid;
+
+    // Create a child process
+    pid = fork();
+
+    if (pid == -1) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+
+    if (pid == 0) {
+        // Child process
+        printf("Child process (PID=%d) created.\n", getpid());
+
+        // Sleep for a while to simulate some work
+        sleep(5);
+
+        printf("Child process (PID=%d) completed.\n", getpid());
+    } else {
+        // Parent process
+        printf("Parent process (PID=%d) created.\n", getpid());
+
+        // Parent sleeps for a while and completes
+        sleep(2);
+        printf("Parent process (PID=%d) completed.\n", getpid());
+    }
+
+    return 0;
+}
+
+Q2)
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_PROCESSES 10
+
+typedef struct {
+    int processID;
+    int arrivalTime;
+    int cpuBurst;
+    int priority;
+    int ioWaitTime;
+    int turnaroundTime;
+    int waitingTime;
+} Process;
+
+void sortByPriority(Process processes[], int n) {
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = 0; j < n - i - 1; j++) {
+            if (processes[j].priority > processes[j + 1].priority) {
+                // Swap processes
+                Process temp = processes[j];
+                processes[j] = processes[j + 1];
+                processes[j + 1] = temp;
+            }
+        }
+    }
+}
+
+void calculateTurnaroundTime(Process processes[], int n) {
+    processes[0].turnaroundTime = processes[0].cpuBurst + processes[0].ioWaitTime;
+
+    for (int i = 1; i < n; i++) {
+        processes[i].turnaroundTime = processes[i - 1].turnaroundTime + processes[i].cpuBurst + processes[i].ioWaitTime;
+    }
+}
+
+void calculateWaitingTime(Process processes[], int n) {
+    processes[0].waitingTime = 0;
+
+    for (int i = 1; i < n; i++) {
+        processes[i].waitingTime = processes[i - 1].turnaroundTime;
+    }
+}
+
+void printGanttChart(Process processes[], int n) {
+    printf("Gantt Chart:\n");
+
+    for (int i = 0; i < n; i++) {
+        printf("| P%d ", processes[i].processID);
+
+        for (int j = 0; j < processes[i].cpuBurst; j++) {
+            printf("=");
+        }
+
+        printf(" |");
+    }
+
+    printf("\n");
+}
+
+int main() {
+    int n;
+    printf("Enter the number of processes: ");
+    scanf("%d", &n);
+
+    if (n > MAX_PROCESSES) {
+        printf("Maximum number of processes allowed is %d\n", MAX_PROCESSES);
+        return 1;
+    }
+
+    Process processes[MAX_PROCESSES];
+
+    printf("Enter arrival time, first CPU burst, and priority for each process:\n");
+    for (int i = 0; i < n; i++) {
+        processes[i].processID = i + 1;
+        printf("Process P%d:\n", processes[i].processID);
+        printf("Arrival Time: ");
+        scanf("%d", &processes[i].arrivalTime);
+        printf("CPU Burst: ");
+        scanf("%d", &processes[i].cpuBurst);
+        printf("Priority: ");
+        scanf("%d", &processes[i].priority);
+        processes[i].ioWaitTime = 2; // Fixed I/O waiting time assumed
+    }
+
+    // Sort processes by priority
+    sortByPriority(processes, n);
+
+    // Calculate turnaround time and waiting time
+    calculateTurnaroundTime(processes, n);
+    calculateWaitingTime(processes, n);
+
+    // Print Gantt chart
+    printGanttChart(processes, n);
+
+    // Print turnaround time and waiting time for each process
+    printf("\nTurnaround Time and Waiting Time:\n");
+    printf("| Process | Turnaround Time | Waiting Time |\n");
+    for (int i = 0; i < n; i++) {
+        printf("|   P%-3d  | %15d | %12d |\n", processes[i].processID, processes[i].turnaroundTime, processes[i].waitingTime);
+    }
+
+    // Calculate and print average turnaround time and waiting time
+    int totalTurnaroundTime = 0, totalWaitingTime = 0;
+    for (int i = 0; i < n; i++) {
+        totalTurnaroundTime += processes[i].turnaroundTime;
+        totalWaitingTime += processes[i].waitingTime;
+    }
+
+    printf("\nAverage Turnaround Time: %.2f\n", (float)totalTurnaroundTime / n);
+    printf("Average Waiting Time: %.2f\n", (float)totalWaitingTime / n);
+
+    return 0;
+}

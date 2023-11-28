@@ -1,0 +1,141 @@
+Q1)
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+int main() {
+    pid_t pid;
+
+    printf("Parent process: %d\n", getpid());
+
+    pid = fork();
+
+    if (pid == 0) {
+        printf("Child process: %d\n", getpid());
+        printf("Child process ID: %d\n", getppid());
+
+        char *args[] = {"ls", "-l", NULL};
+        execvp("ls", args);
+
+        printf("This should not be printed\n");
+    } else {
+        printf("This is the parent process: %d\n", getpid());
+        wait(NULL);
+        printf("Parent process ends\n");
+    }
+
+    return 0;
+}
+
+Q2)
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_JOBS 10
+
+typedef struct {
+    int jobID;
+    int arrivalTime;
+    int cpuBurst;
+    int ioWaitTime;
+    int turnaroundTime;
+    int waitingTime;
+} Job;
+
+void calculateTurnaroundTime(Job jobs[], int n) {
+    jobs[0].turnaroundTime = jobs[0].cpuBurst + jobs[0].ioWaitTime;
+
+    for (int i = 1; i < n; i++) {
+        jobs[i].turnaroundTime = jobs[i - 1].turnaroundTime + jobs[i].cpuBurst + jobs[i].ioWaitTime;
+    }
+}
+
+void calculateWaitingTime(Job jobs[], int n) {
+    jobs[0].waitingTime = 0;
+
+    for (int i = 1; i < n; i++) {
+        jobs[i].waitingTime = jobs[i - 1].turnaroundTime;
+    }
+}
+
+void printGanttChart(Job jobs[], int n) {
+    printf("Gantt Chart:\n");
+
+    for (int i = 0; i < n; i++) {
+        printf("| Job %d ", jobs[i].jobID);
+
+        for (int j = 0; j < jobs[i].cpuBurst; j++) {
+            printf("=");
+        }
+
+        printf(" |");
+    }
+
+    printf("\n");
+}
+
+int main() {
+    int n;
+    printf("Enter the number of jobs: ");
+    scanf("%d", &n);
+
+    if (n > MAX_JOBS) {
+        printf("Maximum number of jobs allowed is %d\n", MAX_JOBS);
+        return 1;
+    }
+
+    Job jobs[MAX_JOBS];
+
+    printf("Enter arrival time and first CPU burst for each job:\n");
+    for (int i = 0; i < n; i++) {
+        jobs[i].jobID = i + 1;
+        printf("Job %d:\n", jobs[i].jobID);
+        printf("Arrival Time: ");
+        scanf("%d", &jobs[i].arrivalTime);
+        printf("CPU Burst: ");
+        scanf("%d", &jobs[i].cpuBurst);
+        jobs[i].ioWaitTime = 2; // Fixed I/O waiting time assumed
+    }
+
+    // Sort jobs by arrival time (FCFS)
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = 0; j < n - i - 1; j++) {
+            if (jobs[j].arrivalTime > jobs[j + 1].arrivalTime) {
+                // Swap jobs
+                Job temp = jobs[j];
+                jobs[j] = jobs[j + 1];
+                jobs[j + 1] = temp;
+            }
+        }
+    }
+
+    // Calculate turnaround time and waiting time
+    calculateTurnaroundTime(jobs, n);
+    calculateWaitingTime(jobs, n);
+
+    // Print Gantt chart
+    printGanttChart(jobs, n);
+
+    // Print turnaround time and waiting time for each job
+    printf("\nTurnaround Time and Waiting Time:\n");
+    printf("| Job | Turnaround Time | Waiting Time |\n");
+    for (int i = 0; i < n; i++) {
+        printf("| %3d | %15d | %12d |\n", jobs[i].jobID, jobs[i].turnaroundTime, jobs[i].waitingTime);
+    }
+
+    // Calculate and print average turnaround time and waiting time
+    int totalTurnaroundTime = 0, totalWaitingTime = 0;
+    for (int i = 0; i < n; i++) {
+        totalTurnaroundTime += jobs[i].turnaroundTime;
+        totalWaitingTime += jobs[i].waitingTime;
+    }
+
+    printf("\nAverage Turnaround Time: %.2f\n", (float)totalTurnaroundTime / n);
+    printf("Average Waiting Time: %.2f\n", (float)totalWaitingTime / n);
+
+    return 0;
+}
+
+
+
