@@ -1,36 +1,39 @@
 Q1)
-#include <stdio.h>
+include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/types.h>
-
-void child_process() {
-    printf("Child Process PID: %d with nice value: %d\n", getpid(), nice(0));
-
-    for (int i = 0; i < 10; i++) {
-        printf("Child Process: %d\n", i);
-        sleep(1);
-    }
-}
 
 int main() {
-    pid_t pid = fork();
+    pid_t child_pid;
+    int nice_value = -10;  // A lower nice value means higher priority
 
-    if (pid > 0) {
-        printf("Parent Process PID: %d with nice value: %d\n", getpid(), nice(0));
-        nice(10); // Increase priority of parent process
-        for (int i = 0; i < 10; i++) {
-            printf("Parent Process: %d\n", i);
-            sleep(1);
+    child_pid = fork();
+
+    if (child_pid == 0) {
+        // This code is executed by the child process
+        printf("Child process (PID %d) is running with normal priority.\n", getpid());
+    } else if (child_pid > 0) {
+        // This code is executed by the parent process
+        printf("Parent process (PID %d) is running with normal priority.\n", getpid());
+
+        // Adjust the priority of the child process using nice()
+        if (nice(nice_value) == -1) {
+            perror("nice");
+            exit(EXIT_FAILURE);
         }
-    } else if (pid == 0) {
-        child_process();
+
+        printf("Parent process has adjusted the child process's priority to be higher.\n");
     } else {
-        printf("Fork failed\n");
+        perror("fork");
+        exit(EXIT_FAILURE);
     }
+
+    // Add a sleep to keep the processes running for a while
+    sleep(5);
 
     return 0;
 }
+
 
 Q2)
 #include <stdio.h>
